@@ -1,0 +1,16 @@
+response = requests.get(url)
+
+response = requests.get('https://example.com')
+Отправляет GET-запрос и получает ответ от сервера
+
+response.status_code
+Выводит HTTP-код ответа (200 – OK, 404 – не найдено, 500 – ошибка сервера и т.д.)
+
+response.text
+Вывести тело ответа как строку (HTML, JSON или другой текстовый формат)
+Если API возвращает JSON, то в response.text будет текст с этим JSON.
+
+response = requests.get('https://api.example.com/data')
+data = response.json()
+"""Но чтобы удобнее работать с JSON, есть метод response.json(), который сразу превращает ответ в словарь Python."""
+
