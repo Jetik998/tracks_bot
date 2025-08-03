@@ -42,6 +42,7 @@ payload = {
 }
 
 response = requests.post(search_url, data=payload, headers=headers)
+response.raise_for_status()
 print(response.status_code)
 
 found_link = None
@@ -64,8 +65,9 @@ print(f"found_photo_url: {found_photo_url}")
 
 next_url = base_url + found_link
 response = requests.get(next_url, headers=headers)
-print(response.url)  # убедись, что попал на нужную страницу
-next_next_url = None
+response.raise_for_status()
+print(response.url)
+next_found_link = None
 mix_name = None
 
 if response.status_code == 200:
@@ -76,12 +78,37 @@ if response.status_code == 200:
     for block in blocks:
         link = block.select_one("a")
         if link and link.has_attr("href"):
-            next_next_url = link["href"]
+            next_found_link = link["href"]
             mix_name = link.text.strip()
             break
 
 else:
     print("Ошибка загрузки:", response.status_code)
 
-print(f"next_next_url: {next_next_url}")
+print(f"next_next_url: {next_found_link}")
 print(f"mix_name: {mix_name}")
+
+
+next_next_url = base_url + next_found_link
+print(f"next_next_url: {next_next_url}")
+try:
+    response = requests.get(next_next_url, headers=headers, timeout=10)
+    response.raise_for_status()
+    print(response.url)
+except requests.exceptions.RequestException as e:
+    print(f"Ошибка запроса: {e}")
+    target_track_id = None
+else:
+    soup = BeautifulSoup(response.text, "html.parser")
+    blocks = soup.select(".tlTab")
+    print(f"Найдено блоков: {len(blocks)}")
+    for block in blocks:
+        target_track = block.select_one("div")
+        if target_track and target_track.text.strip() == track:
+            try:
+                target_track_id = block['data-trno']
+                print(target_track_id)
+            except KeyError:
+                print("Атрибут 'data-trno' отсутствует в блоке")
+                target_track_id = None
+            break
