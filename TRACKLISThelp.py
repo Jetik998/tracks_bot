@@ -1,3 +1,4 @@
+"""
 target_text = "Нужная подпись"
 
 # Найти все div с классами bItm и oItm
@@ -16,3 +17,6 @@ for block in blocks:
         img_url = img.get('data-src') or img.get('src')
         break
     link = block.select()
+----------------------------------------------------"""
+
+
