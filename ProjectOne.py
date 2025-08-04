@@ -72,9 +72,13 @@ def make_request(session, url, payload, retries=3):
             time.sleep(random.uniform(2, 5))  # пауза перед повтором
     raise RuntimeError("Все попытки выполнить запрос не удались. Прерывание программы.")
 
+track_search_limit = 10
+track = {}
 track_name = "Adam Ten & Rhye - 3 Days Later"
+track["name"] = track_name
 track_id = None
-track_img = None
+found_link = None
+
 
 payload = {
     "main_search": track_name,
@@ -84,14 +88,66 @@ payload = {
 
 base_url = "https://www.1001tracklists.com"
 search_url = "https://www.1001tracklists.com/search/result.php"
-
+max_checks = 10
+checks_done = 0
 
 with requests.Session() as session:
 
+    #Step 1 (Получение первой ссылки из поиска)
     html = make_request(session, search_url, payload)
     soup = BeautifulSoup(html, "html.parser")
     blocks = soup.select("#kTZXcvbn > div.bItm.oItm")
-    for block in blocks:
-        found_track_name = block.select_one("div.bCont.acSA > div.bTitle > a")
-        if found_track_name
 
+    for block in blocks:
+        if checks_done >= max_checks:
+            print("Достигнут лимит проверок, трек не найден.")
+            break
+
+        found_tag = block.select_one("div.bCont.acSA > div.bTitle > a")
+        if not found_tag:
+            checks_done += 1
+            continue
+
+        # Берём название трека из текста тега <a>
+        found_track_name = found_tag.text
+        # Сравниваем название найденного трека с нашим входным
+        if words_similarity(track_name, found_track_name, threshold=0.6):
+            img_tag = block.select_one("img")
+            if img_tag:
+                track_img = img_tag.get("data-src")
+            found_link = found_tag.get("href")
+            if found_link:
+                track["link"] = found_link
+                break
+
+    if found_link:
+        checks_done = 0
+        # Step 2
+        html = make_request(session, search_url, payload)
+        soup = BeautifulSoup(html, "html.parser")
+        blocks = soup.select("#kTZXcvbn > div.bItm.action.oItm")
+
+        for block in blocks:
+            if checks_done >= max_checks:
+                print("Достигнут лимит проверок, трек не найден.")
+                break
+
+            found_tag = block.select_one("div.bCont > div.bTitle > a")
+            if not found_tag:
+                checks_done += 1
+                continue
+
+            # Берём название трека из текста тега <a>
+            found_track_name = found_tag.text
+            # Сравниваем название найденного трека с нашим входным
+            if words_similarity(track_name, found_track_name, threshold=0.6):
+                img_tag = block.select_one("img")
+                if img_tag:
+                    track_img = img_tag.get("data-src")
+                found_link = found_tag.get("href")
+                if found_link:
+                    track["link"] = found_link
+                    break
+
+    else:
+        print(f"Ссылка не найдена {found_link}")
