@@ -37,20 +37,27 @@ def get_random_headers():
     }
 
 def random_sleep(min_sec=2, max_sec=6):
+    """
+    Пауза на случайное время между min_sec и max_sec секундами с выводом в консоль.
+    """
     sleep_time = random.uniform(min_sec, max_sec)
     print(f"[*] Ждём {sleep_time:.1f} сек перед следующим запросом")
     time.sleep(sleep_time)
 
-def word_match_ratio(track_name, found_text):
-    """Возвращает процент совпадения по словам."""
-    t_words = set(track_name.lower().split())
-    f_words = set(found_text.lower().split())
+def words_similarity(input_track, found_track, threshold=0.6):
+    """
+    Сравнивает названия треков по совпадению слов.
 
-    # количество общих слов
-    common = t_words & f_words
-    ratio = len(common) / len(t_words) * 100  # процент совпадения
+    Возвращает True, если (по умолчанию) 60% слов из input_track
+    содержатся в found_track, иначе False.
+    """
+    input_words = input_track.lower().split()
+    found_words = found_track.lower().split()
 
-    return ratio
+    matches = sum(1 for w in input_words if w in found_words)
+    similarity = matches / len(input_words)
+
+    return similarity >= threshold
 
 def make_request(session, url, payload, retries=3):
     """Отправляет POST-запрос с повторами при ошибках"""
@@ -65,13 +72,13 @@ def make_request(session, url, payload, retries=3):
             time.sleep(random.uniform(2, 5))  # пауза перед повтором
     raise RuntimeError("Все попытки выполнить запрос не удались. Прерывание программы.")
 
-track = "Adam Ten & Rhye - 3 Days Later"
+track_name = "Adam Ten & Rhye - 3 Days Later"
 track_id = None
 track_img = None
 
 payload = {
-    "main_search": track,
-    "search_selection": "2",  # 2 = поиск tracks
+    "main_search": track_name,
+    "search_selection": "2",  # пункт 2 = поиск tracks на сайте
     "orderby": "added",
 }
 
@@ -85,6 +92,6 @@ with requests.Session() as session:
     soup = BeautifulSoup(html, "html.parser")
     blocks = soup.select("#kTZXcvbn > div.bItm.oItm")
     for block in blocks:
-        link = block.select_one("div.bCont.acSA > div.bTitle > a")
-        if link
+        found_track_name = block.select_one("div.bCont.acSA > div.bTitle > a")
+        if found_track_name
 
