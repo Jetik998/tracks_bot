@@ -91,24 +91,49 @@ print(f"mix_name: {mix_name}")
 
 next_next_url = base_url + next_found_link
 print(f"next_next_url: {next_next_url}")
+target_track_id = None
+target_track_name = None
+tracks = {}
+
 try:
     response = requests.get(next_next_url, headers=headers, timeout=10)
     response.raise_for_status()
     print(response.url)
 except requests.exceptions.RequestException as e:
     print(f"Ошибка запроса: {e}")
-    target_track_id = None
+
 else:
     soup = BeautifulSoup(response.text, "html.parser")
-    blocks = soup.select(".tlTab")
+    blocks = soup.select("#tlTab > div")
     print(f"Найдено блоков: {len(blocks)}")
     for block in blocks:
-        target_track = block.select_one("div")
-        if target_track and target_track.text.strip() == track:
-            try:
-                target_track_id = block['data-trno']
-                print(target_track_id)
-            except KeyError:
-                print("Атрибут 'data-trno' отсутствует в блоке")
-                target_track_id = None
+        meta_tag = block.select_one("meta")
+        target_track_name = meta_tag.get("content") if meta_tag else None
+
+        if target_track_name and track in target_track_name:
+            target_track_id = int(block.get('data-trno'))
+            print(f'Найден искомый трек: ID({target_track_id}) name:{target_track_name}')
             break
+    if target_track_id:
+        tracks[target_track_id] = target_track_name
+        for block in blocks:
+            try:
+                track_id = int(block.get('data-trno'))
+            except (TypeError, ValueError):
+                continue
+
+            if track_id == target_track_id - 1:
+                meta_tag = block.select_one("meta")
+                target_track_name = meta_tag.get("content") if meta_tag else None
+                tracks[track_id] = target_track_name
+
+            if track_id == target_track_id + 1:
+                meta_tag = block.select_one("meta")
+                target_track_name = meta_tag.get("content") if meta_tag else None
+                tracks[track_id] = target_track_name
+
+    if (target_track_id - 1) not in tracks and (target_track_id + 1) not in tracks:
+        print("Соседние треки не найдены")
+
+    print(tracks)
+
