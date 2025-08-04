@@ -97,6 +97,7 @@ if response.status_code == 200:
     blocks = soup.select("div.bItm.action.oItm")
     print(f"Найдено блоков: {len(blocks)}")
 
+
     for block in blocks:
         link = block.select_one("a")
         if link and link.has_attr("href"):
