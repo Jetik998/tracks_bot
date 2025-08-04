@@ -1,16 +1,10 @@
-
-track = "Adam Ten & Rhye - 3 Days Later"
-
-# Step 1
-response = requests.post(search_url, data=payload, headers=get_random_headers())
-response.raise_for_status()
-print(response.status_code)
-
 import requests
 import random
+from bs4 import BeautifulSoup
 import time
 
-# --- ДАННЫЕ ДЛЯ ЗАГОЛОВКОВ ---
+# ЗАГОТОВКА ЧЕРЕЗ РЕКВЕСТ
+
 user_agents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.1 Safari/605.1.15",
@@ -29,8 +23,11 @@ accept_languages = [
     "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
 ]
 
-# --- ФУНКЦИЯ ДЛЯ РАНДОМНЫХ ЗАГОЛОВКОВ ---
 def get_random_headers():
+    """
+    Функция для рандомных заголовков
+    :return:
+    """
     return {
         "User-Agent": random.choice(user_agents),
         "Referer": random.choice(referers),
@@ -39,8 +36,23 @@ def get_random_headers():
         "Connection": "keep-alive",
     }
 
-# --- ФУНКЦИЯ С ЗАПРОСОМ ---
-def make_request(url, payload, retries=3):
+def random_sleep(min_sec=2, max_sec=6):
+    sleep_time = random.uniform(min_sec, max_sec)
+    print(f"[*] Ждём {sleep_time:.1f} сек перед следующим запросом")
+    time.sleep(sleep_time)
+
+def word_match_ratio(track_name, found_text):
+    """Возвращает процент совпадения по словам."""
+    t_words = set(track_name.lower().split())
+    f_words = set(found_text.lower().split())
+
+    # количество общих слов
+    common = t_words & f_words
+    ratio = len(common) / len(t_words) * 100  # процент совпадения
+
+    return ratio
+
+def make_request(session, url, payload, retries=3):
     """Отправляет POST-запрос с повторами при ошибках"""
     for attempt in range(retries):
         try:
@@ -51,25 +63,28 @@ def make_request(url, payload, retries=3):
         except requests.exceptions.RequestException as e:
             print(f"[!] Ошибка: {e}. Попытка {attempt+1}/{retries}...")
             time.sleep(random.uniform(2, 5))  # пауза перед повтором
-    return None  # если все попытки неудачные
+    raise RuntimeError("Все попытки выполнить запрос не удались. Прерывание программы.")
 
-# --- ПРИМЕР ИСПОЛЬЗОВАНИЯ ---
-url = "https://example.com/search"
+track = "Adam Ten & Rhye - 3 Days Later"
+track_id = None
+track_img = None
+
 payload = {
-    "main_search": "track_name",
-    "search_selection": "2",
+    "main_search": track,
+    "search_selection": "2",  # 2 = поиск tracks
     "orderby": "added",
 }
 
-for i in range(5):
-    html = make_request(url, payload)
-    if html:
-        print(f"[+] Запрос {i+1} выполнен успешно ({len(html)} символов)")
-    else:
-        print(f"[-] Запрос {i+1} не удался")
+base_url = "https://www.1001tracklists.com"
+search_url = "https://www.1001tracklists.com/search/result.php"
 
-    # --- Рандомная пауза между запросами ---
-    sleep_time = random.uniform(2, 6)
-    print(f"[*] Ждём {sleep_time:.1f} сек перед следующим запросом")
-    time.sleep(sleep_time)
+
+with requests.Session() as session:
+
+    html = make_request(session, search_url, payload)
+    soup = BeautifulSoup(html, "html.parser")
+    blocks = soup.select("#kTZXcvbn > div.bItm.oItm")
+    for block in blocks:
+        link = block.select_one("div.bCont.acSA > div.bTitle > a")
+        if link
 

@@ -4,9 +4,6 @@ from bs4 import BeautifulSoup
 
 # ЗАГОТОВКА ЧЕРЕЗ РЕКВЕСТ
 
-base_url = "https://www.1001tracklists.com"
-search_url = "https://www.1001tracklists.com/search/result.php"
-
 user_agents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.1 Safari/605.1.15",
@@ -26,6 +23,10 @@ accept_languages = [
 ]
 
 def get_random_headers():
+    """
+    Функция для рандомных заголовков
+    :return:
+    """
     return {
         "User-Agent": random.choice(user_agents),
         "Referer": random.choice(referers),
@@ -34,7 +35,20 @@ def get_random_headers():
         "Connection": "keep-alive",
     }
 
+def make_request(session, url, payload, retries=3):
+    """Отправляет POST-запрос с повторами при ошибках"""
+    for attempt in range(retries):
+        try:
+            timeout = (random.uniform(3, 6), random.uniform(10, 20))
+            response = requests.post(url, headers=get_random_headers(), data=payload, timeout=timeout)
+            response.raise_for_status()  # выбросит ошибку если код != 200
+            return response.text
+        except requests.exceptions.RequestException as e:
+            print(f"[!] Ошибка: {e}. Попытка {attempt+1}/{retries}...")
+            time.sleep(random.uniform(2, 5))  # пауза перед повтором
+    return None  # если все попытки неудачные
 
+track = "Adam Ten & Rhye - 3 Days Later"
 
 payload = {
     "main_search": track,
@@ -42,8 +56,13 @@ payload = {
     "orderby": "added",
 }
 
-track = "Adam Ten & Rhye - 3 Days Later"
+base_url = "https://www.1001tracklists.com"
+search_url = "https://www.1001tracklists.com/search/result.php"
 
+
+response = make_request(search_url, payload)
+
+# Step 1
 response = requests.post(search_url, data=payload, headers=get_random_headers())
 response.raise_for_status()
 print(response.status_code)
@@ -65,7 +84,7 @@ else:
 
 print(f"found_link: {found_link}")
 print(f"found_photo_url: {found_photo_url}")
-
+# Step 2
 next_url = base_url + found_link
 response = requests.get(next_url, headers=get_random_headers())
 response.raise_for_status()
@@ -91,7 +110,7 @@ else:
 print(f"next_next_url: {next_found_link}")
 print(f"mix_name: {mix_name}")
 
-
+# Step 3
 next_next_url = base_url + next_found_link
 print(f"next_next_url: {next_next_url}")
 target_track_id = None
