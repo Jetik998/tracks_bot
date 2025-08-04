@@ -25,15 +25,16 @@ accept_languages = [
     "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
 ]
 
-headers = {
-    "User-Agent": random.choice(user_agents),
-    "Referer": random.choice(referers),
-    "Accept-Language": random.choice(accept_languages),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-    "Connection": "keep-alive",
-}
+def get_random_headers():
+    return {
+        "User-Agent": random.choice(user_agents),
+        "Referer": random.choice(referers),
+        "Accept-Language": random.choice(accept_languages),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Connection": "keep-alive",
+    }
 
-track = "Adam Ten & Rhye - 3 Days Later"
+
 
 payload = {
     "main_search": track,
@@ -41,7 +42,9 @@ payload = {
     "orderby": "added",
 }
 
-response = requests.post(search_url, data=payload, headers=headers)
+track = "Adam Ten & Rhye - 3 Days Later"
+
+response = requests.post(search_url, data=payload, headers=get_random_headers())
 response.raise_for_status()
 print(response.status_code)
 
@@ -64,7 +67,7 @@ print(f"found_link: {found_link}")
 print(f"found_photo_url: {found_photo_url}")
 
 next_url = base_url + found_link
-response = requests.get(next_url, headers=headers)
+response = requests.get(next_url, headers=get_random_headers())
 response.raise_for_status()
 print(response.url)
 next_found_link = None
@@ -96,7 +99,7 @@ target_track_name = None
 tracks = {}
 
 try:
-    response = requests.get(next_next_url, headers=headers, timeout=10)
+    response = requests.get(next_next_url, headers=get_random_headers(), timeout=10)
     response.raise_for_status()
     print(response.url)
 except requests.exceptions.RequestException as e:
