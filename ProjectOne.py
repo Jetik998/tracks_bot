@@ -44,7 +44,7 @@ def random_sleep(min_sec=2, max_sec=6):
     print(f"[*] Ждём {sleep_time:.1f} сек перед следующим запросом")
     time.sleep(sleep_time)
 
-def words_similarity(input_track, found_track, threshold=0.6):
+def words_sim(input_track, found_track, threshold=0.6):
     """
     Сравнивает названия треков по совпадению слов.
 
@@ -73,11 +73,12 @@ def make_request(session, url, payload, retries=3):
     raise RuntimeError("Все попытки выполнить запрос не удались. Прерывание программы.")
 
 track_search_limit = 10
-track = {}
 track_name = "Adam Ten & Rhye - 3 Days Later"
-track["name"] = track_name
+track_link = None
 track_id = None
 found_link = None
+mix_search_limit = 10
+to_mix_search_limit = 30
 
 
 payload = {
@@ -88,12 +89,13 @@ payload = {
 
 base_url = "https://www.1001tracklists.com"
 search_url = "https://www.1001tracklists.com/search/result.php"
+
 max_checks = 10
 checks_done = 0
 
 with requests.Session() as session:
 
-    #Step 1 (Получение первой ссылки из поиска)
+    #Step 1 (Найти страницу трека в поиске)
     html = make_request(session, search_url, payload)
     soup = BeautifulSoup(html, "html.parser")
     blocks = soup.select("#kTZXcvbn > div.bItm.oItm")
@@ -111,25 +113,33 @@ with requests.Session() as session:
         # Берём название трека из текста тега <a>
         found_track_name = found_tag.text
         # Сравниваем название найденного трека с нашим входным
-        if words_similarity(track_name, found_track_name, threshold=0.6):
+        if words_sim(track_name, found_track_name, threshold=0.6):
+            #Обновляем трек нейм на найденный из тега
+            track_name = found_track_name
             img_tag = block.select_one("img")
             if img_tag:
                 track_img = img_tag.get("data-src")
             found_link = found_tag.get("href")
             if found_link:
-                track["link"] = found_link
+                track_link = found_link
                 break
 
-    if found_link:
+    if track_link:
+        # Объединяем базовый URL с найденным
+        track_link = base_url + track_link
+        # Обнуляем счетчик
         checks_done = 0
-        # Step 2
-        html = make_request(session, search_url, payload)
+        # Step 2 (Ищем ссылки на миксы > Переходим в миксы
+        # > Ищем название трека в миксах)
+        found_mix_name = None
+        found_mix_link = None
+        html = make_request(session, track_link, payload)
         soup = BeautifulSoup(html, "html.parser")
         blocks = soup.select("#kTZXcvbn > div.bItm.action.oItm")
 
         for block in blocks:
-            if checks_done >= max_checks:
-                print("Достигнут лимит проверок, трек не найден.")
+            if checks_done >= mix_search_limit:
+                print("Достигнут лимит проверок, микс не найден.")
                 break
 
             found_tag = block.select_one("div.bCont > div.bTitle > a")
@@ -137,17 +147,66 @@ with requests.Session() as session:
                 checks_done += 1
                 continue
 
-            # Берём название трека из текста тега <a>
-            found_track_name = found_tag.text
-            # Сравниваем название найденного трека с нашим входным
-            if words_similarity(track_name, found_track_name, threshold=0.6):
-                img_tag = block.select_one("img")
-                if img_tag:
-                    track_img = img_tag.get("data-src")
-                found_link = found_tag.get("href")
-                if found_link:
-                    track["link"] = found_link
-                    break
+            # Берём название микса из текста тега <a>
+            found_mix_name = found_tag.text
+            found_mix_link = found_tag.get("href")
+
+            # Если ссылка найдена, переходим в микс и ищем наш трек.
+            if found_mix_link:
+                # Обнуляем счетчик
+                checks_done = 0
+
+                found_mix_link = base_url + found_mix_link
+                mix_html = make_request(session, found_mix_link, payload)
+                soup = BeautifulSoup(mix_html, "html.parser")
+                items = soup.select("#tlTab > div")
+
+                #Цикл поиска id Базового трека
+                for item in items:
+                    if checks_done >= to_mix_search_limit:
+                        print("Достигнут лимит проверок, трек в миксе не найден.")
+                        break
+
+                    found_tag_base = item.select_one("div.bCont.tl")
+                    if not found_tag_base:
+                        checks_done += 1
+                        continue
+
+                    meta_tag = item.select_one("meta")
+                    target_track_name = meta_tag.get("content") if meta_tag else None
+
+                    if target_track_name == track_name:
+                        track_id = block.get('data-trno')
+                        break
+
+                #Нашли id нашего трека > Ищем соседние id
+                if track_id:
+                    # Обнуляем счетчик
+                    checks_done = 0
+                    base_id = int(track_id)
+                    for element in elements:
+                        if checks_done >= to_mix_search_limit:
+                            print("Достигнут лимит проверок, трек не найден.")
+                            break
+
+                        found_tag_last = element.select_one("div.bCont.tl")
+                        if not found_tag_last:
+                            checks_done += 1
+                            continue
+
+                        meta_tag = item.select_one("meta")
+                        target_track_name = meta_tag.get("content") if meta_tag else None
+
+                        if target_track_name == track_name:
+                            track_id = block.get('data-trno')
+
+
+
+
+
+
+
+
 
     else:
         print(f"Ссылка не найдена {found_link}")
