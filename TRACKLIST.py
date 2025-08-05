@@ -35,19 +35,6 @@ def get_random_headers():
         "Connection": "keep-alive",
     }
 
-def make_request(session, url, payload, retries=3):
-    """Отправляет POST-запрос с повторами при ошибках"""
-    for attempt in range(retries):
-        try:
-            timeout = (random.uniform(3, 6), random.uniform(10, 20))
-            response = requests.post(url, headers=get_random_headers(), data=payload, timeout=timeout)
-            response.raise_for_status()  # выбросит ошибку если код != 200
-            return response.text
-        except requests.exceptions.RequestException as e:
-            print(f"[!] Ошибка: {e}. Попытка {attempt+1}/{retries}...")
-            time.sleep(random.uniform(2, 5))  # пауза перед повтором
-    return None  # если все попытки неудачные
-
 track = "Adam Ten & Rhye - 3 Days Later"
 
 payload = {
@@ -58,17 +45,15 @@ payload = {
 
 base_url = "https://www.1001tracklists.com"
 search_url = "https://www.1001tracklists.com/search/result.php"
-
-
-response = make_request(search_url, payload)
-
+found_link = None
+found_photo_url = None
 # Step 1
 response = requests.post(search_url, data=payload, headers=get_random_headers())
 response.raise_for_status()
 print(response.status_code)
+with open("tracklist.html", "w", encoding="utf-8") as f:
+    f.write(response.text)
 
-found_link = None
-found_photo_url = None
 if response.status_code == 200:
     soup = BeautifulSoup(response.text, "html.parser")
     blocks = soup.select("div.bItm.oItm")
@@ -77,7 +62,7 @@ if response.status_code == 200:
         if link and link.text.strip() == track:
             img = block.find("img", class_="artM")
             found_photo_url = img.get("data-src") or img.get("src") if img else None
-            found_link = link["href"]
+            found_link = link.get("href")
             break
 else:
     print("Ошибка загрузки:", response.status_code)

@@ -1,3 +1,4 @@
+import cloudscraper
 import requests
 import random
 from bs4 import BeautifulSoup
@@ -57,6 +58,7 @@ def words_sim(input_track, found_track, threshold=0.6):
     matches = sum(1 for w in input_words if w in found_words)
     similarity = matches / len(input_words)
 
+    print(f'Сравнение треков: {similarity >= threshold}')
     return similarity >= threshold
 
 def make_request(session, url, payload, retries=3):
@@ -64,8 +66,10 @@ def make_request(session, url, payload, retries=3):
     for attempt in range(retries):
         try:
             timeout = (random.uniform(3, 6), random.uniform(10, 20))
-            response = requests.post(url, headers=get_random_headers(), data=payload, timeout=timeout)
+            response = session.post(url, headers=get_random_headers(), data=payload, timeout=timeout)
             response.raise_for_status()  # выбросит ошибку если код != 200
+            with open("response.html", "w", encoding="utf-8") as f:
+                f.write(response.text)
             return response.text
         except requests.exceptions.RequestException as e:
             print(f"[!] Ошибка: {e}. Попытка {attempt+1}/{retries}...")
@@ -98,20 +102,25 @@ with requests.Session() as session:
     #Step 1 (Найти страницу трека в поиске)
     html = make_request(session, search_url, payload)
     soup = BeautifulSoup(html, "html.parser")
-    blocks = soup.select("#kTZXcvbn > div.bItm.oItm")
+    blocks = soup.select("div.bItm.oItm")
 
+    print('Первый цикл')
     for block in blocks:
+        print('Вошли в цикл')
         if checks_done >= max_checks:
-            print("Достигнут лимит проверок, трек не найден.")
+            print("Достигнут лимит проверок, трек не найден. step 1")
             break
 
-        found_tag = block.select_one("div.bCont.acSA > div.bTitle > a")
+        found_tag = block.select_one("div.bCont.acSa > div.bTitle > a")
+        print(f'Первый тег{found_tag.text}')
         if not found_tag:
             checks_done += 1
             continue
 
+        print('Нейм найден')
         # Берём название трека из текста тега <a>
         found_track_name = found_tag.text
+        print('{found_track_name}')
         # Сравниваем название найденного трека с нашим входным
         if words_sim(track_name, found_track_name, threshold=0.6):
             #Обновляем трек нейм на найденный из тега
@@ -139,7 +148,7 @@ with requests.Session() as session:
 
         for block in blocks:
             if checks_done >= mix_search_limit:
-                print("Достигнут лимит проверок, микс не найден.")
+                print("Достигнут лимит проверок, микс не найден. step 2")
                 break
 
             found_tag = block.select_one("div.bCont > div.bTitle > a")
@@ -164,7 +173,7 @@ with requests.Session() as session:
                 #Цикл поиска id Базового трека
                 for item in items:
                     if checks_done >= to_mix_search_limit:
-                        print("Достигнут лимит проверок, трек в миксе не найден.")
+                        print("Достигнут лимит проверок, трек в миксе не найден. step 3")
                         break
 
                     found_tag_base = item.select_one("div.bCont.tl")
@@ -172,6 +181,7 @@ with requests.Session() as session:
                         checks_done += 1
                         continue
 
+                    #Если нашли id Базового трека
                     meta_tag = item.select_one("meta")
                     target_track_name = meta_tag.get("content") if meta_tag else None
 
@@ -184,21 +194,38 @@ with requests.Session() as session:
                     # Обнуляем счетчик
                     checks_done = 0
                     base_id = int(track_id)
-                    for element in elements:
+                    prev_id = str(base_id - 1)
+                    next_id = str(base_id + 1)
+                    prev_track_name = None
+                    next_track_name = None
+                    for item in items:
                         if checks_done >= to_mix_search_limit:
-                            print("Достигнут лимит проверок, трек не найден.")
+                            print("Достигнут лимит проверок, трек в миксе не найден. step 4")
                             break
 
-                        found_tag_last = element.select_one("div.bCont.tl")
-                        if not found_tag_last:
+                        get_id = block.get('data-trno')
+                        if not get_id:
                             checks_done += 1
                             continue
 
-                        meta_tag = item.select_one("meta")
-                        target_track_name = meta_tag.get("content") if meta_tag else None
+                        if get_id == prev_id:
+                            meta_tag = item.select_one("meta")
+                            target_track_name = meta_tag.get("content") if meta_tag else None
+                            prev_track_name = target_track_name
 
-                        if target_track_name == track_name:
-                            track_id = block.get('data-trno')
+                        if get_id == next_id:
+                            meta_tag = item.select_one("meta")
+                            target_track_name = meta_tag.get("content") if meta_tag else None
+                            next_track_name = target_track_name
+
+                    if not prev_track_name and not next_track_name:
+                        print("Ни одного трека не найдено")
+
+                    else:
+                        print(f"Предыдущий трек: {prev_track_name}\nСледующий трек: {next_track_name}")
+
+
+
 
 
 
