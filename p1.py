@@ -8,7 +8,7 @@ print(data['title'])
 
 import requests
 
-session = requests.Session()
+
 session.headers.update({'User-Agent': 'MyApp/1.0'})
 
 url = "https://httpbin.org/headers"
