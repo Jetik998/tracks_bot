@@ -50,7 +50,7 @@ base_url = "https://www.1001tracklists.com"
 
 
 def search_track():
-    """Получение html результатов поиска"""
+    """Ищет трек по названию, возвращает страницу со списком треков"""
     global input_track
     payload = {
         "main_search": input_track,
@@ -73,7 +73,9 @@ def detect_captcha(html):
         return True
 
 
+
 def get_input_track_url(html):
+    """Принимает страницу со списком треков, ищет совпадение с искомым треком"""
     global base_url, input_track_url
     soup = BeautifulSoup(html, "html.parser")
     tracks_dives = soup.select("div.bItm.oItm")
@@ -93,6 +95,7 @@ def get_input_track_url(html):
             logger.info(f'Сделано {count} попыток поиска треков.')
 
 def solve_captcha(html):
+    """Принимает страницу, находит капчу, сохряняет в jpg"""
     soup = BeautifulSoup(html, "html.parser")
     captcha_img = soup.find('img', alt='Captcha')
     if captcha_img:
@@ -116,3 +119,6 @@ def step2(url):
     if detect_captcha(html):
         solve_captcha(html)
     else:
+        url = input_track_url
+
+
