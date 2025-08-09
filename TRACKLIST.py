@@ -1,6 +1,8 @@
 import requests
 import random
 from bs4 import BeautifulSoup
+import time
+
 
 # ЗАГОТОВКА ЧЕРЕЗ РЕКВЕСТ
 
