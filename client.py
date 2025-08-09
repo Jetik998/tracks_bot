@@ -1,7 +1,32 @@
-import requests
+import logging
 import random
 import time
-#time.sleep(random.uniform(1, 5))
+import cloudscraper
+import pickle
+import os
+
+logger = logging.getLogger(__name__)
+
+scraper = cloudscraper.create_scraper()
+
+def load_cookies(scraper, filename="cookies/cookies.pkl"):
+    if os.path.exists(filename):
+        with open(filename, "rb") as f:
+            cookies = pickle.load(f)
+            scraper.cookies.update(cookies)
+        logger.info("Куки загружены из файла")
+    else:
+        logger.info("Файл с куки не найден")
+
+def save_cookies(scraper, filename="cookies/cookies.pkl"):
+    folder = os.path.dirname(filename)
+    if folder and not os.path.exists(folder):
+        os.makedirs(folder)
+        logger.info(f'Создана папка: {folder}')
+    with open(filename, "wb") as f:
+        pickle.dump(scraper.cookies, f)
+    logger.info("Куки сохранены в файл")
+
 
 user_agents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
@@ -33,12 +58,27 @@ def get_random_headers():
         "Connection": "keep-alive",
     }
 
-def get_html(url, params=None):
-    """
-    Выполняет GET-запрос с рандомными заголовками
-    """
+load_cookies(scraper)
+
+
+def get_html(url, data=None):
+    """Выполняет POST-запрос с рандомными заголовками"""
+    global scraper
+    get_html.count += 1
     time.sleep(random.uniform(1, 5))
     headers = get_random_headers()
-    response = requests.get(url, headers=headers, params=params)
-    response.raise_for_status()  # выбросить ошибку при плохом статусе
+    try:
+        response = scraper.post(url, headers=headers, data=data)
+        response.raise_for_status()
+    except Exception as e:
+        logger.error(f"Ошибка при запросе: {e}")
+        raise
+    save_cookies(scraper)
+    get_html.last_url = response.url
+    logger.info(f'Последняя ссылка: {get_html.last_url}')
     return response.text
+
+get_html.last_url = ""
+get_html.count = 0
+
+

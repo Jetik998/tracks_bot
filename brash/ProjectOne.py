@@ -68,7 +68,7 @@ def make_request(url, payload, retries=3):
         try:
             response = scraper.post(url, headers=get_random_headers(), data=payload)
             response.raise_for_status()
-            with open("../response.html", "w", encoding="utf-8") as f:
+            with open("response.html", "w", encoding="utf-8") as f:
                 f.write(response.text)
             return response.text
         except Exception as e:

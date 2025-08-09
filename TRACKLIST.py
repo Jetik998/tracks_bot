@@ -53,7 +53,7 @@ found_photo_url = None
 response = requests.post(search_url, data=payload, headers=get_random_headers())
 response.raise_for_status()
 print(response.status_code)
-with open("tracklist.html", "w", encoding="utf-8") as f:
+with open("brash/tracklist.html", "w", encoding="utf-8") as f:
     f.write(response.text)
 
 if response.status_code == 200:
