@@ -2,30 +2,13 @@ import logging
 import random
 import time
 import cloudscraper
-import pickle
-import os
+
+
 
 logger = logging.getLogger(__name__)
 
 scraper = cloudscraper.create_scraper()
 
-def load_cookies(scraper, filename="cookies/cookies.pkl"):
-    if os.path.exists(filename):
-        with open(filename, "rb") as f:
-            cookies = pickle.load(f)
-            scraper.cookies.update(cookies)
-        logger.info("Куки загружены из файла")
-    else:
-        logger.info("Файл с куки не найден")
-
-def save_cookies(scraper, filename="cookies/cookies.pkl"):
-    folder = os.path.dirname(filename)
-    if folder and not os.path.exists(folder):
-        os.makedirs(folder)
-        logger.info(f'Создана папка: {folder}')
-    with open(filename, "wb") as f:
-        pickle.dump(scraper.cookies, f)
-    logger.info("Куки сохранены в файл")
 
 
 user_agents = [

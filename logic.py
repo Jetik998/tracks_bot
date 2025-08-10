@@ -1,48 +1,15 @@
 import logging
 import base64
 from bs4 import BeautifulSoup
-from click import argument
-
+from utils import save_to_file
 from client import get_html
-import os
-import time
-from datetime import datetime
+
+
 
 #time.sleep(random.uniform(1, 5))
 
 logger = logging.getLogger(__name__)
 
-def generate_filename(prefix, filetype=""):
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]  # миллисекунды
-    filename = f"{prefix}_{timestamp}"
-
-    if not filetype:
-        filetype = ""
-    elif not filetype.startswith("."):
-        filetype = "." + filetype
-
-    return f"{filename}{filetype}"
-
-def save_to_file(html, prefix, filetype=""):
-    filename = generate_filename(prefix, filetype)
-    with open(filename, "w", encoding="utf-8") as f:
-        f.write(html)
-        logger.info(f'Файл {filename} сохранен.')
-
-def save_captcha_image(url):
-    img_dir = "img"
-    os.makedirs(img_dir, exist_ok=True)
-
-    image_data = url.split(",")[1]
-    image_data = base64.b64decode(image_data)
-
-    image_name = f"captcha_{int(time.time() * 1000)}.jpg"
-    file_path = os.path.join(img_dir, image_name)
-
-    with open(file_path, "wb") as f:
-        f.write(image_data)
-
-    logger.info(f'Изображение капчи {image_name} сохранено')
 
 input_track = "Adam Ten & Rhye - 3 Days Later"
 input_track_url = None
@@ -72,10 +39,9 @@ def detect_captcha(html):
         logger.info("Нужно ввести капчу")
         return True
 
-
-
 def get_input_track_url(html):
-    """Принимает страницу со списком треков, ищет совпадение с искомым треком"""
+    """Принимает страницу со списком треков, ищет совпадение с искомым треком
+    Если трек найден, возвращает ссылку на страницу с треком"""
     global base_url, input_track_url
     soup = BeautifulSoup(html, "html.parser")
     tracks_dives = soup.select("div.bItm.oItm")
@@ -101,24 +67,40 @@ def solve_captcha(html):
     if captcha_img:
         captcha_url = captcha_img.get('src')
         save_captcha_image(captcha_url)
+        logger.error("Появилась страница с капчей, изображение сохранено.")
         #captcha_input = input("Введите капчу: ")
 
     else:
         logger.info("Капча не найдена")
 
-def step1():
+
+
+def search_url_input_track():
+    """Ищет страницу для (input_track). Возвращает ссылку если найдено совпадение."""
     html = search_track()
     if detect_captcha(html):
         solve_captcha(html)
-    else:
-        url = get_input_track_url(html)
+
+    url = get_input_track_url(html)
+    logger.info("search_url_input_track: Выполнено!")
+    return url
 
 
-def step2(url):
+def load_page_input_track(url):
+    """Принимает ссылку на страницу (input_track),
+     переходит на страницу с треком, проверяет есть ли капча,
+     возвращает страницу.
+    """
     html = get_html(url)
     if detect_captcha(html):
         solve_captcha(html)
-    else:
-        url = input_track_url
+
+    logger.info("load_page_input_track: Выполнено!")
+    return html
+
+def search_mixes_on_page(html):
+    pass
+
+
 
 

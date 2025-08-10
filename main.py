@@ -1,11 +1,15 @@
 import logging
 from logger_config import setup_logger
 import logic
-from logic import detect_captcha
+
 
 setup_logger()
 
 logger = logging.getLogger(__name__)
+
+def main_flow():
+    url = logic.search_url_input_track()
+    html = logic.load_page_input_track(url)
 
 
 
