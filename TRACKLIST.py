@@ -147,3 +147,20 @@ else:
 
     print(tracks)
 
+def get_input_track_url(html):
+    """Принимает страницу со списком треков, ищет совпадение с искомым треком
+    Если трек найден, возвращает ссылку на страницу с треком"""
+    global base_url, input_track_url
+    soup = BeautifulSoup(html, "html.parser")
+    tracks_dives = soup.select("div.bItm.oItm")
+    count = 0
+    for div in tracks_dives:
+        count += 1
+        logger.info(f'{count} Попытка поиска искомого трека')
+        if count <=10:
+            url = div.select_one("div.bCont.acSa > div.bTitle > a")
+            if url and url.text.strip() == input_track:
+                input_track_url = url.get("href")
+                input_track_url = base_url + input_track_url
+                logger.info(f"Найдена ссылка на искомый трек {input_track_url}")
+                return input_track_url

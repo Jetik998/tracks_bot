@@ -2,14 +2,11 @@ import logging
 import random
 import time
 import cloudscraper
-
-
+from utils import load_cookies, save_cookies
 
 logger = logging.getLogger(__name__)
 
 scraper = cloudscraper.create_scraper()
-
-
 
 user_agents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",

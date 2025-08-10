@@ -1,31 +1,21 @@
 import logging
-import base64
 from bs4 import BeautifulSoup
-from utils import save_to_file
+from utils import save_to_file, save_captcha_image
 from client import get_html
-
-
-
-#time.sleep(random.uniform(1, 5))
+from config import *
 
 logger = logging.getLogger(__name__)
 
-
-input_track = "Adam Ten & Rhye - 3 Days Later"
 input_track_url = None
-base_url = "https://www.1001tracklists.com"
-
 
 def search_track():
     """Ищет трек по названию, возвращает страницу со списком треков"""
-    global input_track
     payload = {
-        "main_search": input_track,
+        "main_search": INPUT_TRACK,
         "search_selection": "2",  # 2 = поиск tracks
         "orderby": "added",
     }
-    search_url = "https://www.1001tracklists.com/search/result.php"
-    html = get_html(search_url, data=payload)
+    html = get_html(SEARCH_URL, data=payload)
     save_to_file(html, "InputTrackPage.html")
     return html
 
@@ -42,7 +32,7 @@ def detect_captcha(html):
 def get_input_track_url(html):
     """Принимает страницу со списком треков, ищет совпадение с искомым треком
     Если трек найден, возвращает ссылку на страницу с треком"""
-    global base_url, input_track_url
+    global input_track_url
     soup = BeautifulSoup(html, "html.parser")
     tracks_dives = soup.select("div.bItm.oItm")
     count = 0
@@ -50,10 +40,10 @@ def get_input_track_url(html):
         count += 1
         logger.info(f'{count} Попытка поиска искомого трека')
         if count <=10:
-            url = div.select_one("div.bCont.acSa > div.bTitle > a")
-            if url and url.text.strip() == input_track:
-                input_track_url = url.get("href")
-                input_track_url = base_url + input_track_url
+            link = div.select_one("div.bCont.acSa > div.bTitle > a")
+            if link and link.text.strip() == INPUT_TRACK:
+                input_track_url = link.get("href")
+                input_track_url = BASE_URL + input_track_url
                 logger.info(f"Найдена ссылка на искомый трек {input_track_url}")
                 return input_track_url
 
@@ -99,7 +89,22 @@ def load_page_input_track(url):
     return html
 
 def search_mixes_on_page(html):
-    pass
+    count = 0
+    soup = BeautifulSoup(html, "html.parser")
+    mix_dives = soup.select("#kTZXcvbn > div.bItm.action.oItm")
+    for div in mix_dives:
+        count += 1
+        if count >= MIX_RETRY_COUNT:
+            logger.info(f'Количество попыток поиска миксов: %s', count)
+        if count >= MIX_COUNT_LIMIT:
+            logger.info(f'Количество найденных миксов: %s', count)
+            logger.info(f'{mix_count} Попытка поиска микса')
+            mix_link = div.select_one("div.bCont > div.bTitle > a")
+            mix_name = mix_link.text.strip()
+            mix_url = mix_link.get('href')
+            mix_url = BASE_URL + mix_url
+
+
 
 
 
