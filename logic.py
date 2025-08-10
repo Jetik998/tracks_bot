@@ -95,14 +95,16 @@ def search_mixes_on_page(html):
     for div in mix_dives:
         count += 1
         if count >= MIX_RETRY_COUNT:
-            logger.info(f'Количество попыток поиска миксов: %s', count)
+            logger.info('Количество попыток поиска миксов: %s', count)
+            break
         if count >= MIX_COUNT_LIMIT:
-            logger.info(f'Количество найденных миксов: %s', count)
-            logger.info(f'{mix_count} Попытка поиска микса')
-            mix_link = div.select_one("div.bCont > div.bTitle > a")
-            mix_name = mix_link.text.strip()
-            mix_url = mix_link.get('href')
-            mix_url = BASE_URL + mix_url
+            logger.info('Количество найденных миксов: %s', count)
+            break
+        logger.info('Попытка поиска микса №: %s', count)
+        mix_link = div.select_one("div.bCont > div.bTitle > a")
+        mix_name = mix_link.text.strip()
+        mix_url = mix_link.get('href')
+        mix_url = BASE_URL + mix_url
 
 
 
