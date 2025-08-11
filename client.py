@@ -26,6 +26,7 @@ accept_languages = [
     "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
 ]
 
+
 def get_random_headers():
     """
     Функция для рандомных заголовков
@@ -37,6 +38,7 @@ def get_random_headers():
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Connection": "keep-alive",
     }
+
 
 load_cookies(scraper)
 
@@ -55,10 +57,9 @@ def get_html(url, data=None):
         raise
     save_cookies(scraper)
     get_html.last_url = response.url
-    logger.info(f'Последняя ссылка: {get_html.last_url}')
+    logger.info(f"Последняя ссылка: {get_html.last_url}")
     return response.text
+
 
 get_html.last_url = ""
 get_html.count = 0
-
-

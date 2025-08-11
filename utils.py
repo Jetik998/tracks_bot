@@ -4,6 +4,7 @@ import pickle
 import time
 import base64
 import os
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -19,41 +20,68 @@ def generate_filename(prefix, filetype=""):
 
     return f"{filename}{filetype}"
 
+
 def save_to_file(html, prefix, filetype=""):
-    filename = generate_filename(prefix, filetype)
-    with open(filename, "w", encoding="utf-8") as f:
-        f.write(html)
-        logger.info(f'Файл {filename} сохранен.')
+    try:
+        filename = generate_filename(prefix, filetype)
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(html)
+            logger.info(f"Файл {filename} сохранен.")
+    except Exception as e:
+        logger.error(f"Ошибка при сохранении файла: {e}")
+
 
 def save_captcha_image(url):
-    img_dir = "img"
-    os.makedirs(img_dir, exist_ok=True)
+    try:
+        img_dir = "img"
+        os.makedirs(img_dir, exist_ok=True)
 
-    image_data = url.split(",")[1]
-    image_data = base64.b64decode(image_data)
+        image_data = url.split(",")[1]
+        image_data = base64.b64decode(image_data)
 
-    image_name = f"captcha_{int(time.time() * 1000)}.jpg"
-    file_path = os.path.join(img_dir, image_name)
+        image_name = f"captcha_{int(time.time() * 1000)}.jpg"
+        file_path = os.path.join(img_dir, image_name)
 
-    with open(file_path, "wb") as f:
-        f.write(image_data)
+        with open(file_path, "wb") as f:
+            f.write(image_data)
 
-    logger.info(f'Изображение капчи {image_name} сохранено')
+        logger.info(f"Изображение капчи {image_name} сохранено")
+    except Exception as e:
+        logger.error(f"Ошибка при сохранении капчи: {e}")
+
 
 def load_cookies(scraper, filename="cookies/cookies.pkl"):
     if os.path.exists(filename):
-        with open(filename, "rb") as f:
-            cookies = pickle.load(f)
+        try:
+            with open(filename, "rb") as f:
+                cookies = pickle.load(f)
             scraper.cookies.update(cookies)
-        logger.info("Куки загружены из файла")
+            logger.info("Куки загружены из файла")
+        except Exception as e:
+            logger.error(f"Ошибка при загрузке куки из файла: {e}")
     else:
         logger.info("Файл с куки не найден")
 
+
 def save_cookies(scraper, filename="cookies/cookies.pkl"):
-    folder = os.path.dirname(filename)
-    if folder and not os.path.exists(folder):
-        os.makedirs(folder)
-        logger.info(f'Создана папка: {folder}')
-    with open(filename, "wb") as f:
-        pickle.dump(scraper.cookies, f)
-    logger.info("Куки сохранены в файл")
+    try:
+        folder = os.path.dirname(filename)
+        if folder and not os.path.exists(folder):
+            os.makedirs(folder)
+            logger.info(f"Создана папка: {folder}")
+        with open(filename, "wb") as f:
+            pickle.dump(scraper.cookies, f)
+        logger.info("Куки сохранены в файл")
+    except Exception as e:
+        logger.error(f"Ошибка при сохранении куки: {e}")
+
+
+def save_to_json(data, filename):
+    try:
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+        logging.info(f"Данные успешно сохранены в файл {filename}")
+    except (IOError, OSError) as e:
+        logging.error(f"Ошибка при записи файла {filename}: {e}")
+    except TypeError as e:
+        logging.error(f"Ошибка сериализации данных в JSON: {e}")
