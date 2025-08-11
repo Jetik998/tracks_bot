@@ -28,7 +28,7 @@ def search_track():
         "orderby": "added",
     }
     html = get_html(SEARCH_URL, data=payload)
-    save_to_file(html, "InputTrackPage.html")
+    save_to_file(html, "InputTrackPage", "html")
     return html
 
 
@@ -133,6 +133,7 @@ def search_mixes_on_page(html):
         mix_url = BASE_URL + mix_url
         mix_count += 1
         mixes.append({"id": mix_count, "name": mix_name, "url": mix_url})
+        logger.info("Микс найден и добавлен: %s", mix_name)
     return mixes
 
 
@@ -152,6 +153,7 @@ def parse_tracklist(html):
             if track_selector:
                 track_name = track_selector.get("content")
                 logger.info("Найден трек: %s", track_name)
+                tracklist.append({"id": count, "name": track_name})
             else:
                 logger.info("Найден трек без названия!")
                 tracklist.append({"id": count, "name": "ID - ID"})
@@ -179,5 +181,5 @@ def process_mix_list(mix_list):
         html = fetch_page(mix["url"])
         tracklist = parse_tracklist(html)
         mix["tracklist"] = tracklist
-    save_to_json(mix_list, "mixes.json")
+    save_to_json(mix_list, "mixes")
     return mix_list
