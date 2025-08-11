@@ -118,12 +118,13 @@ def search_mixes_on_page(html):
     mix_dives = soup.select("#kTZXcvbn > div.bItm.action.oItm")
     for div in mix_dives:
         retry_count += 1
-        if retry_count >= MIX_RETRY_COUNT:
+        mix_count += 1
+        if retry_count > MIX_RETRY_COUNT:
             logger.info(
                 "Количество попыток поиска миксов(MIX_RETRY_COUNT): %s", retry_count
             )
             break
-        if mix_count >= MIX_COUNT_LIMIT:
+        if mix_count > MIX_COUNT_LIMIT:
             logger.info("Количество найденных миксов(MIX_COUNT_LIMIT): %s", mix_count)
             break
         logger.info("Попытка поиска микса №: %s", mix_count)
@@ -173,7 +174,7 @@ def process_mix_list(mix_list):
     parse_count = 0
     for mix in mix_list:
         parse_count += 1
-        if parse_count >= PARCE_MIX_COUNT_LIMIT:
+        if parse_count > PARCE_MIX_COUNT_LIMIT:
             logger.info(
                 "Количество спарсенных миксов(PARCE_MIX_COUNT_LIMIT): %s", parse_count
             )
