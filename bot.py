@@ -45,6 +45,7 @@ async def handle_track_name(message: types.Message):
 
         response = f"{before_str}\n\n{after_str}"
         await message.answer(response)
+        logger.info(f"Ответ отправлен пользователю {message.from_user.id}")
 
     except Exception as e:
         logger.error(f"Ошибка в обработчике трека: {e}")

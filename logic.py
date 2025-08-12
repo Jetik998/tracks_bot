@@ -152,6 +152,7 @@ def parse_tracklist(html):
     soup = BeautifulSoup(html, "html.parser")
     tracks_dives = soup.select("#tlTab > div[data-trno]")
     count = 0
+    tracklist["input_track"] = None
     for div in tracks_dives:  # track_id = div.get("data-trno")
         try:  # track_id = int(track_id)
             count += 1
@@ -161,9 +162,15 @@ def parse_tracklist(html):
                 logger.info("Найден трек: %s", track_name)
                 tracklist[count] = track_name
                 if track_name == input_track:
-                    tracklist["input_track"] = count
-                else:
-                    tracklist["input_track"] = None
+                    if tracklist["input_track"] is None:
+                        tracklist["input_track"] = count
+                    else:
+                        logger.error(
+                            "Внимание! Трек '%s' уже найден раньше (номер %s), а сейчас снова на позиции %s.",
+                            input_track,
+                            tracklist["input_track"],
+                            count,
+                        )
 
             else:
                 logger.info("Найден трек без названия!")
@@ -201,12 +208,12 @@ def process_mix_list(mix_list):
     after_tracks = []
     parse_count = 0
     for mix in mix_list:
-        parse_count += 1
         if parse_count > PARCE_MIX_COUNT_LIMIT:
             logger.info(
                 "Количество спарсенных миксов(PARCE_MIX_COUNT_LIMIT): %s", parse_count
             )
             break
+
         html = fetch_page(mix["url"])
         tracklist = parse_tracklist(html)
         mix["tracklist"] = tracklist
@@ -214,6 +221,7 @@ def process_mix_list(mix_list):
         mix["pairs"] = pairs
         before_tracks.append(pairs.get("before"))
         after_tracks.append(pairs.get("after"))
+        parse_count += 1
 
     save_to_json(mix_list, "mixes")
     return [before_tracks, after_tracks]
