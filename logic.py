@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup
 from utils import save_to_file, save_captcha_image
 from client import get_html
 from config import (
-    INPUT_TRACK,
     SEARCH_URL,
     SEARCH_INPUT_TRACK_LIMIT,
     BASE_URL,
@@ -17,13 +16,19 @@ import sys
 
 logger = logging.getLogger(__name__)
 
+input_track = None
 input_track_url = None
+
+
+def set_input_track(track_name):
+    global input_track
+    input_track = track_name
 
 
 def search_track():
     """Ищет трек по названию, возвращает страницу со списком треков"""
     payload = {
-        "main_search": INPUT_TRACK,
+        "main_search": input_track,
         "search_selection": "2",  # 2 = поиск tracks
         "orderby": "added",
     }
@@ -60,7 +65,7 @@ def get_input_track_url(html):
             )
             break
         link = div.select_one("div.bCont.acSa > div.bTitle > a")
-        if link and link.text.strip() == INPUT_TRACK:
+        if link and link.text.strip() == input_track:
             input_track_url = link.get("href")
             input_track_url = BASE_URL + input_track_url
             logger.info(f"Найдена ссылка на искомый трек {input_track_url}")
@@ -133,7 +138,7 @@ def search_mixes_on_page(html):
         mix_url = mix_link.get("href")
         mix_url = BASE_URL + mix_url
         mix_count += 1
-        mixes.append({"id": mix_count, "name": mix_name, "url": mix_url})
+        mixes.append({"mix_id": mix_count, "mix_name": mix_name, "url": mix_url})
         logger.info("Микс найден и добавлен: %s", mix_name)
     return mixes
 
@@ -142,26 +147,25 @@ def parse_tracklist(html):
     """
     Принимает HTML с треклистом, парсит и возвращает словарь.
     """
-    tracklist = []
+    tracklist = {}
     soup = BeautifulSoup(html, "html.parser")
     tracks_dives = soup.select("#tlTab > div[data-trno]")
     count = 0
-    for div in tracks_dives:
-        track_id = div.get("data-trno")
-        try:
+    for div in tracks_dives:  # track_id = div.get("data-trno")
+        try:  # track_id = int(track_id)
             count += 1
             track_selector = div.select_one("div.bCont.tl meta[itemprop='name']")
             if track_selector:
                 track_name = track_selector.get("content")
                 logger.info("Найден трек: %s", track_name)
-                tracklist.append({"id": count, "name": track_name})
+                tracklist[count] = track_name
             else:
                 logger.info("Найден трек без названия!")
-                tracklist.append({"id": count, "name": "ID - ID"})
+                tracklist[count] = "ID - ID"
 
         except Exception as e:
             logger.error("Ошибка при получении трека:%s", e)
-            tracklist.append({"id": track_id, "name": "ID - ID"})
+            tracklist[count] = "ID - ID"
 
     return tracklist
 
@@ -184,3 +188,22 @@ def process_mix_list(mix_list):
         mix["tracklist"] = tracklist
     save_to_json(mix_list, "mixes")
     return mix_list
+
+
+def search_pairs(mix_list):
+    global input_track
+    input_track_id = None
+
+    for mix in mix_list:
+        tracklist = mix.get("tracklist", {})
+        try:
+            for i, name in tracklist.items():
+                if name == input_track:
+                    input_track_id = i
+                    break
+            if input_track_id is None:
+                break
+
+        except Exception as e:
+            logger.error("Ошибка при обработке треклиста:%s", e)
+            continue
