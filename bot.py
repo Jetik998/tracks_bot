@@ -3,6 +3,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 import asyncio
 from main import main_flow
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ async def handle_track_name(message: types.Message):
         logger.info(f"Ответ отправлен пользователю {message.from_user.id}")
 
     except Exception as e:
-        logger.error(f"Ошибка в обработчике трека: {e}")
+        logger.error(f"Ошибка в обработчике трека: {e}\n{traceback.format_exc()}")
         await message.answer("Произошла ошибка при обработке запроса.")
 
 

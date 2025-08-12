@@ -188,13 +188,18 @@ def search_pairs(tracklist_dict):
     Возвращает пары треков after and before"""
     pairs = {}
     input_track_id = tracklist_dict["input_track"]
-    if input_track_id:
+    if input_track_id is not None:
+
         before_id = input_track_id - 1
         after_id = input_track_id + 1
-        if tracklist_dict[before_id]:
-            pairs["before"] = tracklist_dict[before_id]
-        if tracklist_dict[after_id]:
-            pairs["after"] = tracklist_dict[after_id]
+
+        before = tracklist_dict.get(before_id)
+        if before:
+            pairs["before"] = before
+
+        after = tracklist_dict.get(after_id)
+        if after:
+            pairs["after"] = after
 
     return pairs
 

@@ -18,4 +18,7 @@ def main_flow(track_name):
 
 
 if __name__ == "__main__":
-    main_flow()
+    test_track = ""
+    if test_track:
+        result = main_flow(test_track)
+        print(result)

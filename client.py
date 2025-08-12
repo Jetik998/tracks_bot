@@ -7,6 +7,7 @@ from utils import load_cookies, save_cookies
 logger = logging.getLogger(__name__)
 
 scraper = cloudscraper.create_scraper()
+load_cookies(scraper)
 
 user_agents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
@@ -38,9 +39,6 @@ def get_random_headers():
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Connection": "keep-alive",
     }
-
-
-load_cookies(scraper)
 
 
 def get_html(url, data=None):
