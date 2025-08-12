@@ -164,3 +164,22 @@ def get_input_track_url(html):
                 input_track_url = base_url + input_track_url
                 logger.info(f"Найдена ссылка на искомый трек {input_track_url}")
                 return input_track_url
+
+            def search_pairs(mix_list):
+                global input_track
+                input_track_id = None
+
+                for mix in mix_list:
+                    tracklist = mix.get("tracklist", {})
+                    try:
+                        for i, name in tracklist.items():
+                            if name == input_track:
+                                input_track_id = i
+                                break
+                        if input_track_id is None:
+                            break
+
+
+                    except Exception as e:
+                        logger.error("Ошибка при обработке треклиста:%s", e)
+                        continue

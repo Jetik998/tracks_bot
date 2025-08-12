@@ -147,6 +147,7 @@ def parse_tracklist(html):
     """
     Принимает HTML с треклистом, парсит и возвращает словарь.
     """
+    global input_track
     tracklist = {}
     soup = BeautifulSoup(html, "html.parser")
     tracks_dives = soup.select("#tlTab > div[data-trno]")
@@ -159,15 +160,36 @@ def parse_tracklist(html):
                 track_name = track_selector.get("content")
                 logger.info("Найден трек: %s", track_name)
                 tracklist[count] = track_name
+                if track_name == input_track:
+                    tracklist["input_track"] = count
+                else:
+                    tracklist["input_track"] = None
+
             else:
                 logger.info("Найден трек без названия!")
-                tracklist[count] = "ID - ID"
+                tracklist[count] = None
 
         except Exception as e:
             logger.error("Ошибка при получении трека:%s", e)
-            tracklist[count] = "ID - ID"
+            tracklist[count] = None
 
     return tracklist
+
+
+def search_pairs(tracklist_dict):
+    """Принимает словарь с треклистом, проверяет наличие (input_track)
+    Возвращает пары треков after and before"""
+    pairs = {}
+    input_track_id = tracklist_dict["input_track"]
+    if input_track_id:
+        before_id = input_track_id - 1
+        after_id = input_track_id + 1
+        if tracklist_dict[before_id]:
+            pairs["before"] = tracklist_dict[before_id]
+        if tracklist_dict[after_id]:
+            pairs["after"] = tracklist_dict[after_id]
+
+    return pairs
 
 
 def process_mix_list(mix_list):
@@ -175,6 +197,8 @@ def process_mix_list(mix_list):
     Принимает список словарей с миксами, передаёт ссылки в другую функцию,
     получает словари с треклистами, сохраняет их в список и возвращает этот список.
     """
+    before_tracks = []
+    after_tracks = []
     parse_count = 0
     for mix in mix_list:
         parse_count += 1
@@ -186,24 +210,10 @@ def process_mix_list(mix_list):
         html = fetch_page(mix["url"])
         tracklist = parse_tracklist(html)
         mix["tracklist"] = tracklist
+        pairs = search_pairs(tracklist)
+        mix["pairs"] = pairs
+        before_tracks.append(pairs.get("before"))
+        after_tracks.append(pairs.get("after"))
+
     save_to_json(mix_list, "mixes")
-    return mix_list
-
-
-def search_pairs(mix_list):
-    global input_track
-    input_track_id = None
-
-    for mix in mix_list:
-        tracklist = mix.get("tracklist", {})
-        try:
-            for i, name in tracklist.items():
-                if name == input_track:
-                    input_track_id = i
-                    break
-            if input_track_id is None:
-                break
-
-        except Exception as e:
-            logger.error("Ошибка при обработке треклиста:%s", e)
-            continue
+    return [before_tracks, after_tracks]
