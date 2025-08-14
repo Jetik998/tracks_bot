@@ -12,9 +12,12 @@ def search_track_name(track_name):
     search_tracks = logic.search_url_input_track(track_name)
     if search_tracks["found"]:
         results = main_flow(search_tracks["url"])
+        logger.info("Словарь похожих треков: %s", results)
         return {"found": True, "response": results}
+
     else:
         tracks_dict = search_tracks["tracks"]
+        logger.info("Словарь похожих треков: %s", tracks_dict)
         return {"found": False, "response": tracks_dict}
 
 

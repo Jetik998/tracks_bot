@@ -5,6 +5,7 @@ import asyncio
 from main import search_track_name, main_flow
 import traceback
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+import logic
 
 
 logger = logging.getLogger(__name__)
@@ -23,20 +24,31 @@ def create_track_options_keyboard(num=5):
     """Создаёт Inline-клавиатуру из первых num треков словаря"""
     options = list(tracks_dict_global.items())[:num]
     keyboard_buttons = [
-        [InlineKeyboardButton(text=track_name, callback_data=f"track:{track_name}")]
-        for track_name, _ in options
+        [InlineKeyboardButton(text=track_name, callback_data=f"track:{i}")]
+        for i, (track_name, _) in enumerate(options, 1)
     ]
     keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
     return keyboard
 
 
 async def handle_track_selection(callback_query: types.CallbackQuery):
+    """
+    Обрабатывает нажатие кнопки трека в Telegram-боте.
+
+    Фильтрует callback-запросы по префиксу 'track:', извлекает имя трека,
+    ищет URL в глобальном словаре и отправляет пользователю результат
+    или сообщение об ошибке, если URL не найден.
+    """
     # фильтруем только нужные callback_data
     if not callback_query.data or not callback_query.data.startswith("track:"):
         return
 
     track_name = callback_query.data.split("track:")[1]
+    i = int(track_name)
+    track_name = list(tracks_dict_global.keys())[i]
     track_url = tracks_dict_global.get(track_name)
+    logic.input_track = track_name
+    logger.info("В БОТЕ(logic.input_track = track_name): %s", track_name)
 
     if track_url:
         response = main_flow(track_url)

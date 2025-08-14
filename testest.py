@@ -1,13 +1,8 @@
-num = 5
+x = {1: 0}
 
-search_tracks_dict = {
-    1: "Track One",
-    2: "Track Two",
-    3: "Track Three",
-    4: "Track Four",
-    5: "Track Five",
-}
 
-for track_id, track_name in list(search_tracks_dict.items())[:num]:
-    print(track_id)
-    print(track_name)
+def func():
+    print(x)
+
+
+print(func())

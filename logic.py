@@ -68,8 +68,9 @@ def get_input_track_url(html, track_name):
             dict_to_db[find_name] = find_url  # В общий сейв
             if find_name == track_name:
                 logger.info(
-                    "Найдена ссылка на искомый трек: %s",
+                    "Найдена ссылка на искомый трек(if find_name: %s, == track_name): %s",
                     find_name,
+                    track_name,
                 )
                 return {"found": True, "url": find_url}
 
@@ -78,8 +79,8 @@ def get_input_track_url(html, track_name):
                 "Сделано попыток: (SEARCH_INPUT_TRACK_LIMIT)(100 Совпадения не обнаружено): %s",
                 count,
             )
-        save_to_json(dict_to_db, "tracks", "json", "write")
-        return {"found": False, "tracks": search_tracks_dict}
+    save_to_json(dict_to_db, "tracks", "json", "write")
+    return {"found": False, "tracks": search_tracks_dict}
 
 
 def solve_captcha(html):
@@ -99,9 +100,7 @@ def solve_captcha(html):
 
 def search_url_input_track(track_name):
     """Ищет страницу для (input_track). Возвращает ссылку если найдено совпадение."""
-    global input_track
-    input_track = track_name
-    html = search_track(track_name)
+    html = search_track(track_name)  # Возвращает HTML результат поиска
     if detect_captcha(html):
         solve_captcha(html)
 
