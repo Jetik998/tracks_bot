@@ -16,19 +16,14 @@ import sys
 
 logger = logging.getLogger(__name__)
 
+
 input_track = None
-input_track_url = None
 
 
-def set_input_track(track_name):
-    global input_track
-    input_track = track_name
-
-
-def search_track():
+def search_track(track_name):
     """Ищет трек по названию, возвращает страницу со списком треков"""
     payload = {
-        "main_search": input_track,
+        "main_search": track_name,
         "search_selection": "2",  # 2 = поиск tracks
         "orderby": "added",
     }
@@ -48,28 +43,44 @@ def detect_captcha(html):
         return True
 
 
-def get_input_track_url(html):
+def get_input_track_url(html, track_name):
     """Принимает страницу со списком треков, ищет совпадение с искомым треком
-    Если трек найден, возвращает ссылку на страницу с треком"""
-    global input_track_url
+    Если есть 100% совпадение, возвращает словарь имя трека и url,
+    если нет, возвращает словарь с пронумерованными треками,
+    """
+    track_id = 0
+    search_tracks_dict = {}
+    dict_to_db = {}
     soup = BeautifulSoup(html, "html.parser")
     tracks_dives = soup.select("div.bItm.oItm")
     count = 0
     for div in tracks_dives:
         count += 1
         logger.info(f"{count} Попытка поиска искомого трека")
+        link = div.select_one("div.bCont.acSa > div.bTitle > a")
+        if link:
+            track_id += 1
+            find_name = link.text.strip()
+            find_url = BASE_URL + link.get("href")
+            search_tracks_dict[find_name] = (
+                find_url  # Cловарь на случай если 100% совпадение не найдено
+            )
+            dict_to_db[find_name] = find_url  # В общий сейв
+            if find_name == track_name:
+                logger.info(
+                    "Найдена ссылка на искомый трек: %s",
+                    find_name,
+                )
+                return {"found": True, "url": find_url}
+
         if count >= SEARCH_INPUT_TRACK_LIMIT:
             logger.info(
-                "Количество попыток поиска искомого трека(SEARCH_INPUT_TRACK_LIMIT): %s",
+                "Сделано попыток: (SEARCH_INPUT_TRACK_LIMIT)(100% Совпадения не обнаружено): %s",
                 count,
             )
-            break
-        link = div.select_one("div.bCont.acSa > div.bTitle > a")
-        if link and link.text.strip() == input_track:
-            input_track_url = link.get("href")
-            input_track_url = BASE_URL + input_track_url
-            logger.info(f"Найдена ссылка на искомый трек {input_track_url}")
-            return input_track_url
+
+    save_to_json(dict_to_db, "tracks", "json", "write")
+    return {"found": False, "tracks": search_tracks_dict}
 
 
 def solve_captcha(html):
@@ -87,9 +98,11 @@ def solve_captcha(html):
         sys.exit(0)
 
 
-def search_url_input_track():
+def search_url_input_track(track_name):
     """Ищет страницу для (input_track). Возвращает ссылку если найдено совпадение."""
-    html = search_track()
+    global input_track
+    input_track = track_name
+    html = search_track(track_name)
     if detect_captcha(html):
         solve_captcha(html)
 
@@ -228,5 +241,22 @@ def process_mix_list(mix_list):
         after_tracks.append(pairs.get("after"))
         parse_count += 1
 
-    save_to_json(mix_list, "mixes")
+    save_to_json(mix_list, "mixes", "mixes", "append")
     return [before_tracks, after_tracks]
+
+
+def pairs_to_string(pairs_list):
+    before_tracks = [name for name in pairs_list[0] if name is not None]
+    after_tracks = [name for name in pairs_list[1] if name is not None]
+    before_str = (
+        "Before (Предыдущий):\n" + "\n".join(before_tracks)
+        if before_tracks
+        else "Before: нет треков"
+    )
+    after_str = (
+        "After (Следующий):\n" + "\n".join(after_tracks)
+        if after_tracks
+        else "After: нет треков"
+    )
+    response = f"{before_str}\n\n{after_str}"
+    return response

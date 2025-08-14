@@ -10,6 +10,18 @@ logger = logging.getLogger(__name__)
 
 
 def generate_filename(prefix, filetype=""):
+    """
+    Генерирует уникальное имя файла с префиксом и временной меткой.
+
+    Args:
+        prefix (str): Префикс для имени файла (например, "users" или "config").
+        filetype (str, optional): Расширение файла (например, "json" или ".txt").
+            Если указано без точки, функция добавит точку автоматически. По умолчанию пустая строка.
+
+    Returns:
+        str: Уникальное имя файла с префиксом, временной меткой и расширением.
+        Пример: "users_20250814_145230_123.json"
+    """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]  # миллисекунды
     filename = f"{prefix}_{timestamp}"
 
@@ -89,25 +101,66 @@ def save_cookies(scraper, filename="cookies/cookies.pkl"):
         logger.error(f"Ошибка при сохранении куки: {e}")
 
 
-def save_to_json(data, prefix, folder_name="json"):
+def save_to_json(data, prefix, folder_name="json", mode="append"):
+    """
+    Сохраняет данные в JSON-файл в указанной папке.
+
+    Функция автоматически создаёт папку, если она отсутствует.
+    В режиме "append" создаётся новый файл с уникальным именем.
+    В режиме "write" данные добавляются в существующий файл (если он есть)
+    или создаётся новый файл. Поддерживаются как словари, так и списки.
+
+    Args:
+        data (dict | list): Данные для сохранения.
+        prefix (str): Префикс для имени файла. Используется как основа имени файла.
+        folder_name (str, optional): Имя папки для хранения файлов. По умолчанию "json".
+        mode (str, optional): Режим сохранения:
+            - "write" — объединяет данные с существующим файлом или создаёт новый.
+            - "append" — создаёт новый файл с уникальным именем.
+    """
+    combined_data = data  # значение по умолчанию
+    filepath = None  # чтобы не было ошибок в except
+
     try:
-        # Получаем путь к папке рядом со скриптом
+        # Путь к директории скрипта
         script_dir = os.path.dirname(os.path.abspath(__file__))
         save_dir = os.path.join(script_dir, folder_name)
 
         # Создаём папку, если нет
-        if not os.path.exists(save_dir):
-            os.mkdir(save_dir)
+        os.makedirs(save_dir, exist_ok=True)
 
-        # Формируем имя файла и полный путь
-        filename = generate_filename(prefix, "json")
-        filepath = os.path.join(save_dir, filename)
+        if mode == "append":
+            filename = generate_filename(prefix, "json")
+            filepath = os.path.join(save_dir, filename)
 
-        # Сохраняем файл
+        elif mode == "write":
+            filename = prefix + ".json"
+            filepath = os.path.join(save_dir, filename)
+
+            if os.path.exists(filepath):
+                with open(filepath, "r", encoding="utf-8") as f:
+                    old_data = json.load(f)
+
+                if isinstance(old_data, dict) and isinstance(data, dict):
+                    combined_data = {**old_data, **data}
+                elif isinstance(old_data, list) and isinstance(data, list):
+                    combined_data = old_data + data
+                else:
+                    combined_data = data
+            else:
+                combined_data = data
+
+        else:
+            raise ValueError(f"Недопустимый режим сохранения: {mode}")
+
+        # Сохраняем данные
         with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
+            json.dump(combined_data, f, ensure_ascii=False, indent=4)
         logging.info(f"Данные успешно сохранены в файл {filepath}")
+
     except (IOError, OSError) as e:
         logging.error(f"Ошибка при записи файла {filepath}: {e}")
     except TypeError as e:
         logging.error(f"Ошибка сериализации данных в JSON: {e}")
+    except Exception as e:
+        logging.error(f"Неожиданная ошибка: {e}")
