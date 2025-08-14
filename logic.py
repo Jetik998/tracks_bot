@@ -75,12 +75,11 @@ def get_input_track_url(html, track_name):
 
         if count >= SEARCH_INPUT_TRACK_LIMIT:
             logger.info(
-                "Сделано попыток: (SEARCH_INPUT_TRACK_LIMIT)(100% Совпадения не обнаружено): %s",
+                "Сделано попыток: (SEARCH_INPUT_TRACK_LIMIT)(100 Совпадения не обнаружено): %s",
                 count,
             )
-
-    save_to_json(dict_to_db, "tracks", "json", "write")
-    return {"found": False, "tracks": search_tracks_dict}
+        save_to_json(dict_to_db, "tracks", "json", "write")
+        return {"found": False, "tracks": search_tracks_dict}
 
 
 def solve_captcha(html):
@@ -106,7 +105,7 @@ def search_url_input_track(track_name):
     if detect_captcha(html):
         solve_captcha(html)
 
-    url = get_input_track_url(html)
+    url = get_input_track_url(html, track_name)
     logger.info("search_url_input_track: Выполнено!")
     return url
 
@@ -198,22 +197,27 @@ def parse_tracklist(html):
 
 def search_pairs(tracklist_dict):
     """Принимает словарь с треклистом, проверяет наличие (input_track)
-    Возвращает пары треков after and before"""
-    pairs = {}
-    input_track_id = tracklist_dict["input_track"]
-    if input_track_id is not None:
+    Возвращает пары треков after и before"""
 
+    pairs = {}
+    input_track_id = tracklist_dict.get("input_track")
+
+    if input_track_id is not None:
         before_id = input_track_id - 1
         after_id = input_track_id + 1
+        before_id = str(before_id)
+        after_id = str(after_id)
+        logger.info("Before id: %s,After id: %s ", before_id, after_id)
 
         before = tracklist_dict.get(before_id)
+        after = tracklist_dict.get(after_id)
+        logger.info("Before value: %s,After value: %s ", before, after)
+
         if before:
             pairs["before"] = before
-
-        after = tracklist_dict.get(after_id)
         if after:
             pairs["after"] = after
-
+    logger.info("Пары: %s", pairs)
     return pairs
 
 
@@ -234,6 +238,7 @@ def process_mix_list(mix_list):
 
         html = fetch_page(mix["url"])
         tracklist = parse_tracklist(html)
+        logger.info("ТРЕКЛИСТ В ПРОЦЕССМИКСЛИСТ: %s", tracklist)
         mix["tracklist"] = tracklist
         pairs = search_pairs(tracklist)
         mix["pairs"] = pairs
@@ -242,6 +247,7 @@ def process_mix_list(mix_list):
         parse_count += 1
 
     save_to_json(mix_list, "mixes", "mixes", "append")
+    logger.info("Вывод Пар: %s", before_tracks)
     return [before_tracks, after_tracks]
 
 
@@ -259,4 +265,5 @@ def pairs_to_string(pairs_list):
         else "After: нет треков"
     )
     response = f"{before_str}\n\n{after_str}"
+    logger.info("Вывод Пар: %s", response)
     return response

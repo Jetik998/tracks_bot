@@ -11,10 +11,11 @@ logger = logging.getLogger(__name__)
 def search_track_name(track_name):
     search_tracks = logic.search_url_input_track(track_name)
     if search_tracks["found"]:
-        response = main_flow(search_tracks["url"])
-        return {"found": True, "response": response}
+        results = main_flow(search_tracks["url"])
+        return {"found": True, "response": results}
     else:
-        return {"found": False, "response": search_tracks["tracks"]}
+        tracks_dict = search_tracks["tracks"]
+        return {"found": False, "response": tracks_dict}
 
 
 def main_flow(url):

@@ -5,7 +5,7 @@ import asyncio
 from main import search_track_name, main_flow
 import traceback
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from config import SEARCH_TRACKS_COUNT
+
 
 logger = logging.getLogger(__name__)
 
@@ -15,28 +15,44 @@ bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 
 
-def create_track_options_keyboard(tracks_dict, num=SEARCH_TRACKS_COUNT):
+tracks_dict_global = {}
+
+
+def create_track_options_keyboard(num=5):
+    global tracks_dict_global
     """Создаёт Inline-клавиатуру из первых num треков словаря"""
-    options = list(tracks_dict.items())[:num]
+    options = list(tracks_dict_global.items())[:num]
     keyboard_buttons = [
-        [InlineKeyboardButton(text=track_name, callback_data=f"track:{track_url}")]
-        for track_name, track_url in options
+        [InlineKeyboardButton(text=track_name, callback_data=f"track:{track_name}")]
+        for track_name, _ in options
     ]
     keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
     return keyboard
+
+
+async def handle_track_selection(callback_query: types.CallbackQuery):
+    # фильтруем только нужные callback_data
+    if not callback_query.data or not callback_query.data.startswith("track:"):
+        return
+
+    track_name = callback_query.data.split("track:")[1]
+    track_url = tracks_dict_global.get(track_name)
+
+    if track_url:
+        response = main_flow(track_url)
+        await callback_query.message.answer(response)
+    else:
+        await callback_query.message.answer("Ошибка: URL трека не найден.")
+
+
+# регистрируем обработчик
+dp.callback_query.register(handle_track_selection)
 
 
 @dp.message(Command("start"))
 async def start_handler(message: types.Message):
     logger.info(f"Пользователь {message.from_user.id} запустил бота")
     await message.answer("Привет! Введи название трека для поиска")
-
-
-@dp.callback_query(lambda c: c.data.startswith("track:"))
-async def process_track_choice(callback_query: types.CallbackQuery):
-    track_url = callback_query.data.split(":", 1)[1]  # безопаснее с split(":", 1)
-    response = main_flow(track_url)
-    await callback_query.message.edit_text(f"Выбран трек:\n{response}")
 
 
 @dp.message()
@@ -49,15 +65,17 @@ async def handle_track_name(message: types.Message):
     try:
         loop = asyncio.get_running_loop()
 
-        response = await loop.run_in_executor(None, search_track_name, track_name)
+        search_tracks = await loop.run_in_executor(None, search_track_name, track_name)
 
-        if response["found"]:
+        if search_tracks["found"]:
             # Если трек найден, просто отправляем результат пользователю
-            await message.answer(response["response"])
+            await message.answer(search_tracks["response"])
             logger.info(f"Ответ отправлен пользователю {message.from_user.id}")
         else:
+            global tracks_dict_global
+            tracks_dict_global = search_tracks["response"]
             # Если не найден, создаём клавиатуру с вариантами
-            keyboard = create_track_options_keyboard(response["response"])
+            keyboard = create_track_options_keyboard()
             await message.answer(
                 "Выберите трек из похожих вариантов:", reply_markup=keyboard
             )
