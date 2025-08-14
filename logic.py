@@ -204,8 +204,7 @@ def search_pairs(tracklist_dict):
     if input_track_id is not None:
         before_id = input_track_id - 1
         after_id = input_track_id + 1
-        before_id = str(before_id)
-        after_id = str(after_id)
+
         logger.info("Before id: %s,After id: %s ", before_id, after_id)
 
         before = tracklist_dict.get(before_id)
